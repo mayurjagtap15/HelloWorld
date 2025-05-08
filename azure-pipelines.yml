@@ -4,20 +4,37 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+- main  # or any branch you want
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
+
+variables:
+  FEED_NAME: 'HelloFeed'         # Replace with your Azure Artifacts feed name
+  PACKAGE_NAME: 'HelloWorldBin'  # Name for the uploaded binary package
+  PACKAGE_VERSION: '1.0.0'       # Update version as needed
 
 steps:
-  - task : JavaToolInstaller@0
-  inputs:
-    versionSpec: 11
-    jdkArchitectureOption: x64
-    jdkSourceOption: "PreInstalled"
-  - script: |
-    javac HelloWorld.java
-    java HelloWorld
-  displayName: 'Compile and Run Java Program'
+- checkout: none
 
+- script: |
+    git clone https://github.com/mayurjagtap15/HelloWorld.git
+  displayName: 'Clone GitHub Repo'
+
+- script: |
+    cd HelloWorld
+    javac HelloWorld.java
+    mkdir -p ../output
+    mv HelloWorld.class ../output/
+  displayName: 'Compile Java Code'
+
+- task: UniversalPackages@0
+  inputs:
+    command: 'publish'
+    publishDirectory: 'output'
+    feedsToUse: 'internal'
+    vstsFeed: '$(FEED_NAME)'
+    packageName: '$(PACKAGE_NAME)'
+    packageVersion: '$(PACKAGE_VERSION)'
+  displayName: 'Publish to Azure Artifacts Feed'
 
